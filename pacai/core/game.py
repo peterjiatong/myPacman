@@ -2,12 +2,14 @@
 The core of a Pac-Man game.
 """
 
+import functools
 import io
 import logging
 import time
 import traceback
 import sys
 
+from pacai.util import timeout
 from pacai.util import util
 
 class Directions:
@@ -415,7 +417,10 @@ class Game:
             return self.rules.getProgress(self)
 
     def _agentCrash(self, agentIndex, quiet=False):
-        "Helper method for handling agent crashes"
+        """
+        Helper method for handling agent crashes.
+        """
+
         if not quiet:
             traceback.print_exc()
 
@@ -455,38 +460,41 @@ class Game:
         self.display.initialize(self.state)
         self.numMoves = 0
 
-        # inform learning agents of the game start
-        for i in range(len(self.agents)):
-            agent = self.agents[i]
+        # Inform learning agents of the game start.
+        for agentIndex in range(len(self.agents)):
+            agent = self.agents[agentIndex]
             if not agent:
                 # this is a null agent, meaning it failed to load
                 # the other team wins
-                self._agentCrash(i, quiet=True)
+                self._agentCrash(agentIndex, quiet=True)
                 return
+
+            maxStartupTime = int(self.rules.getMaxStartupTime(agentIndex))
 
             # Register the initial state with the agent.
             self.mute()
             if self.catchExceptions:
-                try:
-                    timed_func = util.TimeoutFunction(agent.registerInitialState,
-                            int(self.rules.getMaxStartupTime(i)))
-                    try:
-                        start_time = time.time()
-                        timed_func(self.state)
-                        time_taken = time.time() - start_time
-                        self.totalAgentTimes[i] += time_taken
-                    except util.TimeoutFunctionException:
-                        logging.warning('Agent %d ran out of time on startup!' % i)
-                        self.unmute()
-                        self.agentTimeout = True
-                        self._agentCrash(i, quiet=True)
-                        return
-                except Exception:
+                registerCall = functools.partial(agent.registerInitialState, self.state)
+
+                start_time = time.time()
+                success, value = timeout.invokeWithTimeout(maxStartupTime, registerCall)
+                self.totalAgentTimes[agentIndex] += int(time.time() - start_time)
+
+                if (not success and value is None):
+                    # Timeout
+                    logging.warning('Agent %d ran out of time on startup!' % agentIndex)
                     self.unmute()
-                    self._agentCrash(i, quiet=True)
+                    self.agentTimeout = True
+                    self._agentCrash(agentIndex, quiet = True)
+                elif (not success and value is not None):
+                    # Error
+                    logging.warning('Agent %d crashed: %s' % (agentIndex, str(value)))
+                    self.unmute()
+                    self._agentCrash(agentIndex, quiet = True)
                     return
             else:
                 agent.registerInitialState(self.state)
+
             self.unmute()
 
         agentIndex = self.startingIndex
@@ -496,75 +504,80 @@ class Game:
             # Fetch the next agent
             agent = self.agents[agentIndex]
             move_time = 0
-            skip_action = False
+
+            moveTimeout = int(self.rules.getMoveTimeout(agentIndex))
 
             # Observe the state.
             self.mute()
             if self.catchExceptions:
-                try:
-                    timed_func = util.TimeoutFunction(agent.observationFunction,
-                            int(self.rules.getMoveTimeout(agentIndex)))
-                    try:
-                        start_time = time.time()
-                        timed_func(self.state)
-                    except util.TimeoutFunctionException:
-                        skip_action = True
+                observeCall = functools.partial(agent.observationFunction, self.state)
 
-                    move_time += time.time() - start_time
+                start_time = time.time()
+                success, value = timeout.invokeWithTimeout(moveTimeout, observeCall)
+                move_time += int(time.time() - start_time)
+
+                if (not success and value is None):
+                    logging.warning('Agent %d timed out on observing a state!' % agentIndex)
                     self.unmute()
-                except Exception:
+                    self.agentTimeout = True
+                    self._agentCrash(agentIndex, quiet = True)
+                    return
+                elif (not success and value is not None):
+                    # Error
+                    logging.warning('Agent %d crashed: %s' % (agentIndex, str(value)))
                     self.unmute()
-                    self._agentCrash(agentIndex, quiet=True)
+                    self._agentCrash(agentIndex, quiet = True)
                     return
             else:
                 agent.observationFunction(self.state)
+
             self.unmute()
 
             # Solicit an action
             action = None
+
             self.mute()
             if self.catchExceptions:
-                try:
-                    timed_func = util.TimeoutFunction(agent.getAction,
-                            int(self.rules.getMoveTimeout(agentIndex)) - int(move_time))
-                    try:
-                        start_time = time.time()
-                        if skip_action:
-                            raise util.TimeoutFunctionException()
-                        action = timed_func(self.state)
-                    except util.TimeoutFunctionException:
-                        logging.warning('Agent %d timed out on a single move!' % agentIndex)
-                        self.agentTimeout = True
-                        self.unmute()
-                        self._agentCrash(agentIndex, quiet=True)
-                        return
+                getActionCall = functools.partial(agent.getAction, self.state)
 
-                    move_time += time.time() - start_time
+                start_time = time.time()
+                success, value = timeout.invokeWithTimeout(moveTimeout, getActionCall)
+                move_time += int(time.time() - start_time)
 
-                    if move_time > self.rules.getMoveWarningTime(agentIndex):
-                        self.totalAgentTimeWarnings[agentIndex] += 1
-                        logging.warning('Agent %d took too long to move! This is warning %d' %
+                if (not success and value is None):
+                    logging.warning('Agent %d timed out on a single move!' % agentIndex)
+                    self.unmute()
+                    self.agentTimeout = True
+                    self._agentCrash(agentIndex, quiet = True)
+                    return
+                elif (not success and value is not None):
+                    # Error
+                    logging.warning('Agent %d crashed: %s' % (agentIndex, str(value)))
+                    self.unmute()
+                    self._agentCrash(agentIndex, quiet = True)
+                    return
+
+                action = value
+
+                if (move_time > self.rules.getMoveWarningTime(agentIndex)):
+                    self.totalAgentTimeWarnings[agentIndex] += 1
+                    logging.warning('Agent %d took too long to move! This is warning %d' %
+                            (agentIndex, self.totalAgentTimeWarnings[agentIndex]))
+                    if (self.totalAgentTimeWarnings[agentIndex]
+                            > self.rules.getMaxTimeWarnings(agentIndex)):
+                        logging.warning('Agent %d exceeded the maximum number of warnings: %d' %
                                 (agentIndex, self.totalAgentTimeWarnings[agentIndex]))
-                        if (self.totalAgentTimeWarnings[agentIndex]
-                                > self.rules.getMaxTimeWarnings(agentIndex)):
-                            logging.warning('Agent %d exceeded the maximum number of warnings: %d' %
-                                    (agentIndex, self.totalAgentTimeWarnings[agentIndex]))
-                            self.agentTimeout = True
-                            self.unmute()
-                            self._agentCrash(agentIndex, quiet=True)
-
-                    self.totalAgentTimes[agentIndex] += move_time
-                    if self.totalAgentTimes[agentIndex] > self.rules.getMaxTotalTime(agentIndex):
-                        logging.warning('Agent %d ran out of time! (time: %1.2f)' %
-                                (agentIndex, self.totalAgentTimes[agentIndex]))
                         self.agentTimeout = True
                         self.unmute()
                         self._agentCrash(agentIndex, quiet=True)
-                        return
+
+                self.totalAgentTimes[agentIndex] += move_time
+                if (self.totalAgentTimes[agentIndex] > self.rules.getMaxTotalTime(agentIndex)):
+                    logging.warning('Agent %d ran out of time! (time: %1.2f)' %
+                            (agentIndex, self.totalAgentTimes[agentIndex]))
+                    self.agentTimeout = True
                     self.unmute()
-                except Exception:
-                    self.unmute()
-                    self._agentCrash(agentIndex)
+                    self._agentCrash(agentIndex, quiet=True)
                     return
             else:
                 action = agent.getAction(self.state)
