@@ -10,7 +10,6 @@ import traceback
 import sys
 
 from pacai.util import timeout
-from pacai.util import util
 
 class Directions:
     NORTH = 'North'

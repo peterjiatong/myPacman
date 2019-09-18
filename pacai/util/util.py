@@ -1,5 +1,3 @@
-import signal
-
 """
 Functions that could be used for various course projects.
 """
