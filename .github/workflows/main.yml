@@ -35,7 +35,7 @@ jobs:
           pip3 install -r requirements.txt
 
       - name: Run Style/Lint
-        run: ./run_style.py
+        run: ./run_style.sh
 
   version-matrix:
 
