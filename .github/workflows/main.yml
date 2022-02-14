@@ -81,4 +81,5 @@ jobs:
           pip3 install -r requirements.txt
 
       - name: Run Tests
-        run: python3 run_tests.py
+        # run: python3 run_tests.py
+        run: python run_tests.py
