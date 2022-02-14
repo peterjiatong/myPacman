@@ -67,7 +67,7 @@ jobs:
         if: ${{ runner.os }} == 'Windows'
         shell: cmd
         run: |
-            dir "%pythonLocation%\python.exe"
+            dir "%pythonLocation%"
             mklink "%pythonLocation%\python3.exe" "%pythonLocation%\python.exe"
 
       - name: Cache Python Dependencies
