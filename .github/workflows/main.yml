@@ -63,10 +63,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
         # Make Windows work with python3 (instead of just python).
-      - name: Configure Python 3
+      - name: Windows Only: Link Python 3
         if: ${{ runner.os }} == 'Windows'
         shell: cmd
-        run: mklink "python3.exe" "%pythonLocation%\python.exe"
+        run: |
+            dir "%pythonLocation%\python.exe"
+            mklink "%pythonLocation%\python3.exe" "%pythonLocation%\python.exe"
 
       - name: Cache Python Dependencies
         uses: actions/cache@v2
