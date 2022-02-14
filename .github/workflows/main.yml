@@ -67,9 +67,10 @@ jobs:
         # mklink "%pythonLocation%\python3.exe" "%pythonLocation%\python.exe"
       - name: Link Python 3 for Windows
         if: ${{ runner.os }} == 'Windows'
-        shell: cmd
+        # shell: cmd
         run: |
             dir "%pythonLocation%"
+            echo $env:path
             echo "%PATH%"
             python --version
             python3 --version
