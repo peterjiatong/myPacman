@@ -66,7 +66,7 @@ jobs:
       - name: Configure Python 3
         if: ${{ runner.os }} == 'Windows'
         shell: cmd
-        run: mklink "%pythonLocation%\python3.exe" "%pythonLocation%\python.exe"
+        run: mklink "python3.exe" "%pythonLocation%\python.exe"
 
       - name: Cache Python Dependencies
         uses: actions/cache@v2
