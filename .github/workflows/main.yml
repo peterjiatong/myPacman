@@ -71,6 +71,8 @@ jobs:
         run: |
             dir "%pythonLocation%"
             echo "%PATH%"
+            python --version
+            python3 --version
 
       - name: Cache Python Dependencies
         uses: actions/cache@v2
