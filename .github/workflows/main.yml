@@ -68,7 +68,7 @@ jobs:
         shell: cmd
         run: |
             dir "%pythonLocation%"
-            mklink "%pythonLocation%\python3.exe" "%pythonLocation%\python.exe"
+            # mklink "%pythonLocation%\python3.exe" "%pythonLocation%\python.exe"
 
       - name: Cache Python Dependencies
         uses: actions/cache@v2
