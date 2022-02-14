@@ -69,7 +69,7 @@ jobs:
         if: ${{ runner.os }} == 'Windows'
         # shell: cmd
         run: |
-            dir "%pythonLocation%"
+            # dir "%pythonLocation%"
             echo $env:path
             echo "%PATH%"
             python --version
