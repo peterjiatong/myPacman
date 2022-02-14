@@ -63,7 +63,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
         # Make Windows work with python3 (instead of just python).
-      - name: Windows Only: Link Python 3
+      - name: Link Python 3 for Windows
         if: ${{ runner.os }} == 'Windows'
         shell: cmd
         run: |
