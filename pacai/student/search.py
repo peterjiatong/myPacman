@@ -1,6 +1,11 @@
 """
 In this file, you will implement generic search algorithms which are called by Pacman agents.
 """
+from pacai.core.directions import Directions
+from pacai.util.stack import Stack
+from pacai.util.queue import Queue
+
+#helper function for dfs
 
 def depthFirstSearch(problem):
     """
@@ -19,7 +24,26 @@ def depthFirstSearch(problem):
     """
 
     # *** Your Code Here ***
-    raise NotImplementedError()
+    # corner case
+    if problem.isGoal(problem.startingState()):
+        return []
+    visited = []
+    myStack = Stack()
+    myStack.push((problem.startingState(), []))
+
+    while myStack:
+        currentNode = myStack.pop()
+        if currentNode[0] in visited:
+            continue
+        visited.append(currentNode[0])
+
+        if problem.isGoal(currentNode[0]):
+            return currentNode[1]
+    
+        for nodeToExpand in problem.successorStates(currentNode[0]):
+            newResult = currentNode[1] + [nodeToExpand[1]]
+            myStack.push((nodeToExpand[0], newResult))
+
 
 def breadthFirstSearch(problem):
     """
@@ -27,7 +51,24 @@ def breadthFirstSearch(problem):
     """
 
     # *** Your Code Here ***
-    raise NotImplementedError()
+    if problem.isGoal(problem.startingState()):
+        return []
+    visited = []
+    myStack = Queue()
+    myStack.push((problem.startingState(), []))
+
+    while myStack:
+        currentNode = myStack.pop()
+        if currentNode[0] in visited:
+            continue
+        visited.append(currentNode[0])
+
+        if problem.isGoal(currentNode[0]):
+            return currentNode[1]
+    
+        for nodeToExpand in problem.successorStates(currentNode[0]):
+            newResult = currentNode[1] + [nodeToExpand[1]]
+            myStack.push((nodeToExpand[0], newResult))
 
 def uniformCostSearch(problem):
     """
