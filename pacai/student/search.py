@@ -1,11 +1,12 @@
 """
 In this file, you will implement generic search algorithms which are called by Pacman agents.
 """
-from pacai.core.directions import Directions
+
 from pacai.util.stack import Stack
 from pacai.util.queue import Queue
+from pacai.util.priorityQueue import PriorityQueue
+import copy
 
-#helper function for dfs
 
 def depthFirstSearch(problem):
     """
@@ -24,24 +25,38 @@ def depthFirstSearch(problem):
     """
 
     # *** Your Code Here ***
+
     # corner case
     if problem.isGoal(problem.startingState()):
         return []
-    visited = []
+    # keep track of visited nodes
+    visited = set()
+    # stack to store nodes to expand
     myStack = Stack()
-    myStack.push((problem.startingState(), []))
+    # push the starting node and a queue to keep track of the answer path
+    myStack.push((problem.startingState(), Queue()))
 
     while myStack:
+        # pop the top node
         currentNode = myStack.pop()
+        # skip if currend node has been visited
         if currentNode[0] in visited:
             continue
-        visited.append(currentNode[0])
-
+        # add current node into visited set
+        visited.add(currentNode[0])
+        # return if we hit the goal
         if problem.isGoal(currentNode[0]):
-            return currentNode[1]
-    
+            result = []
+            # pop up the queue
+            while currentNode[1]:
+                result.append(currentNode[1].pop())
+            return result
+
+        # add child nodes of current node into the stack, track result path respectively
         for nodeToExpand in problem.successorStates(currentNode[0]):
-            newResult = currentNode[1] + [nodeToExpand[1]]
+            # make a deep copy so currentnode remains the same
+            newResult = copy.deepcopy(currentNode[1])
+            newResult.push(nodeToExpand[1])
             myStack.push((nodeToExpand[0], newResult))
 
 
@@ -51,24 +66,40 @@ def breadthFirstSearch(problem):
     """
 
     # *** Your Code Here ***
+
+    # corner case
     if problem.isGoal(problem.startingState()):
         return []
-    visited = []
-    myStack = Queue()
-    myStack.push((problem.startingState(), []))
 
-    while myStack:
-        currentNode = myStack.pop()
+    # keep track of visited nodes
+    visited = set()
+    # queue up nodes to expand
+    myQueue = Queue()
+    # push the starting node and a queue to keep track of the answer path
+    myQueue.push((problem.startingState(), Queue()))
+
+    while myQueue:
+        # pop the top node
+        currentNode = myQueue.pop()
+        # skip if currend node has been visited
         if currentNode[0] in visited:
             continue
-        visited.append(currentNode[0])
-
+        # add current node into visited set
+        visited.add(currentNode[0])
+        # return if we hit the goal
         if problem.isGoal(currentNode[0]):
-            return currentNode[1]
-    
+            result = []
+            # pop up the queue
+            while currentNode[1]:
+                result.append(currentNode[1].pop())
+            return result
+
+        # add child nodes of current node into the stack, track result path respectively
         for nodeToExpand in problem.successorStates(currentNode[0]):
-            newResult = currentNode[1] + [nodeToExpand[1]]
-            myStack.push((nodeToExpand[0], newResult))
+            # make a deep copy so currentnode remains the same
+            newResult = copy.deepcopy(currentNode[1])
+            newResult.push(nodeToExpand[1])
+            myQueue.push((nodeToExpand[0], newResult))
 
 def uniformCostSearch(problem):
     """
@@ -76,7 +107,39 @@ def uniformCostSearch(problem):
     """
 
     # *** Your Code Here ***
-    raise NotImplementedError()
+
+    # corner case
+    if problem.isGoal(problem.startingState()):
+        return []
+
+    # keep track of visited nodes
+    visited = set()
+    # use a priortyQueue to store nodes to expand
+    myPQ = PriorityQueue()
+    # push the starting node and a list to keep track of the answer path
+    # (becuase problem.actionsCost need to iterate)
+    # set the first priorty to 0 because nothing in the path
+    myPQ.push((problem.startingState(), []), 0)
+
+    while myPQ:
+        # pop the top node
+        currentNode = myPQ.pop()
+        # skip if currend node has been visited
+        if currentNode[0] in visited:
+            continue
+        # add current node into visited set
+        visited.add(currentNode[0])
+        # return if we hit the goal
+        if problem.isGoal(currentNode[0]):
+            return currentNode[1]
+
+        # add child nodes of current node into the stack, track result path respectively
+        for nodeToExpand in problem.successorStates(currentNode[0]):
+            # make a deep copy so currentnode remains the same
+            newResult = copy.deepcopy(currentNode[1])
+            newResult.append(nodeToExpand[1])
+            # use problem.actionsCost to get new priorty
+            myPQ.push((nodeToExpand[0], newResult), problem.actionsCost(newResult))
 
 def aStarSearch(problem, heuristic):
     """
