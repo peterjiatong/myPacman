@@ -179,5 +179,4 @@ def aStarSearch(problem, heuristic):
             newResult = copy.deepcopy(currentNode[1])
             newResult.append(nodeToExpand[1])
             # use problem.actionsCost + Cost to get new priorty
-            myPQ.push((nodeToExpand[0], newResult), problem.actionsCost(newResult) + nodeToExpand[2])
-    raise NotImplementedError()
+            myPQ.push((nodeToExpand[0], newResult), problem.actionsCost(newResult) + heuristic(nodeToExpand[0], problem))
