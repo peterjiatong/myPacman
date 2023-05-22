@@ -1,5 +1,7 @@
 from pacai.agents.learning.reinforcement import ReinforcementAgent
 from pacai.util import reflection
+from collections import defaultdict
+import random
 
 class QLearningAgent(ReinforcementAgent):
     """
@@ -44,47 +46,37 @@ class QLearningAgent(ReinforcementAgent):
 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
-
-        # You can initialize Q-values here.
+        self.qValues = {}
 
     def getQValue(self, state, action):
-        """
-        Get the Q-Value for a `pacai.core.gamestate.AbstractGameState`
-        and `pacai.core.directions.Directions`.
-        Should return 0.0 if the (state, action) pair has never been seen.
-        """
-
-        return 0.0
+        return self.qValues.get((state, action), 0)
 
     def getValue(self, state):
-        """
-        Return the value of the best action in a state.
-        I.E., the value of the action that solves: `max_action Q(state, action)`.
-        Where the max is over legal actions.
-        Note that if there are no legal actions, which is the case at the terminal state,
-        you should return a value of 0.0.
-
-        This method pairs with `QLearningAgent.getPolicy`,
-        which returns the actual best action.
-        Whereas this method returns the value of the best action.
-        """
-
-        return 0.0
+        legalActions = self.getLegalActions(state)
+        if not legalActions:
+            return 0.0
+        return max(self.getQValue(state, action) for action in legalActions)
 
     def getPolicy(self, state):
-        """
-        Return the best action in a state.
-        I.E., the action that solves: `max_action Q(state, action)`.
-        Where the max is over legal actions.
-        Note that if there are no legal actions, which is the case at the terminal state,
-        you should return a value of None.
+        legalActions = self.getLegalActions(state)
+        if not legalActions:
+            return None
 
-        This method pairs with `QLearningAgent.getValue`,
-        which returns the value of the best action.
-        Whereas this method returns the best action itself.
-        """
+        bestQValue = self.getValue(state)
+        return random.choice([action for action in
+                        legalActions if self.getQValue(state, action) == bestQValue])
 
-        return None
+    def getAction(self, state):
+        legalActions = self.getLegalActions(state)
+        if not legalActions or random.random() < self.epsilon:
+            return random.choice(legalActions)
+        else:
+            return self.getPolicy(state)
+
+    def update(self, state, action, nextState, reward):
+        estimatedQ = reward + self.getGamma() * self.getValue(nextState)
+        self.qValues[(state, action)] = (1 - self.getAlpha()) * self.getQValue(state,
+                                        action) + self.getAlpha() * estimatedQ
 
 class PacmanQAgent(QLearningAgent):
     """
@@ -136,6 +128,21 @@ class ApproximateQAgent(PacmanQAgent):
         self.featExtractor = reflection.qualifiedImport(extractor)
 
         # You might want to initialize weights here.
+        self.weights = defaultdict(int)
+        self.discount = self.getDiscountRate()
+
+    def getQValue(self, state, action):
+        total = 0
+        features = self.featExtractor.getFeatures(self, state, action)
+        for key in features:
+            total += features[key] * self.weights[key]
+        return total
+
+    def update(self, state, action, nextState, reward):
+        diff = (reward + self.discount * self.getValue(nextState)) - self.getQValue(state, action)
+        features = self.featExtractor.getFeatures(self, state, action)
+        for key in features:
+            self.weights[key] = self.weights[key] + self.alpha * diff * features[key]
 
     def final(self, state):
         """
@@ -144,9 +151,3 @@ class ApproximateQAgent(PacmanQAgent):
 
         # Call the super-class final method.
         super().final(state)
-
-        # Did we finish training?
-        if self.episodesSoFar == self.numTraining:
-            # You might want to print your weights here for debugging.
-            # *** Your Code Here ***
-            raise NotImplementedError()

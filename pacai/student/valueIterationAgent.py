@@ -38,19 +38,50 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.iters = iters
         self.values = {}  # A dictionary which holds the q-values for each state.
 
-        # Compute the values here.
-        raise NotImplementedError()
+        # Calculate the values here.
+        for state in self.mdp.getStates():
+            self.values[state] = 0
+
+        for _ in range(self.iters):
+            updatedValues = dict()
+            for state in self.mdp.getStates():
+                actions = self.mdp.getPossibleActions(state)
+                if not actions:
+                    updatedValues[state] = self.getValue(state)
+                else:
+                    bestAction = actions[0]
+                    for action in actions:
+                        if self.getQValue(state, action) > self.getQValue(state, bestAction):
+                            bestAction = action
+                    updatedValues[state] = self.getQValue(state, bestAction)
+            self.values = updatedValues
+
+    def getQValue(self, state, action):
+        totalQValue = 0
+        for nextState, prob in self.mdp.getTransitionStatesAndProbs(state, action):
+            totalQValue += (self.getValue(nextState) * self.discountRate
+                            + self.mdp.getReward(state, action, nextState)) * prob
+        return totalQValue
+
+    def getPolicy(self, state):
+        actions = self.mdp.getPossibleActions(state)
+        if actions:
+            bestAction = actions[0]
+            for action in actions:
+                if self.getQValue(state, action) > self.getQValue(state, bestAction):
+                    bestAction = action
+        else:
+            bestAction = None
+        return bestAction
 
     def getValue(self, state):
         """
         Return the value of the state (computed in __init__).
         """
-
-        return self.values.get(state, 0.0)
+        return self.values.get(state)
 
     def getAction(self, state):
         """
         Returns the policy at the state (no exploration).
         """
-
         return self.getPolicy(state)
