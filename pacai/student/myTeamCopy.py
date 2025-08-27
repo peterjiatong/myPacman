@@ -12,7 +12,7 @@ def createTeam(firstIndex, secondIndex, isRed,
     """
 
     firstAgent = aggroAgent
-    secondAgent = defenseAgent
+    secondAgent = aggroAgent
 
     return [
         firstAgent(firstIndex),
@@ -62,17 +62,14 @@ class aggroAgent(CaptureAgent):
         # find all ghosts distance
         ghostsDis = [self.getMazeDistance(myPosition, ghost.getPosition()) for ghost in ghosts]
         # find the distance to the closest ghost
-        if(len(ghostsDis) > 0):
-            minGhostDis = min(ghostsDis)
-        else:
-            minGhostDis = 0
+        minGhostDis = min(ghostsDis)
         features['ghostDis'] = minGhostDis
 
         # make weights as a dict as well
         weights = {
             'successorScore': 100,
             'foodDis': -1,
-            'capsuleDis': 0.2,
+            'capsuleDis': -0.2,
             'ghostDis': 0.75,
         }
 

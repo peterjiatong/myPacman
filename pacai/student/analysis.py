@@ -79,9 +79,6 @@ def question6():
     [Enter a description of what you did here.]
     """
 
-    answerEpsilon = None
-    answerLearningRate = None
-
     return NOT_POSSIBLE
 
 if __name__ == '__main__':
